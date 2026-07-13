@@ -18,7 +18,11 @@ export const getOrCreateHostingConfig = async (): Promise<HostingConfig | null> 
     try {
         const created = await puter.hosting.create(subdomain, '.');
 
-        return  {subdomain: created.subdomain};
+        const record = {subdomain: created.subdomain};
+
+        await puter.kv.set(HOSTING_CONFIG_KEY, record);
+
+        return record;
     }catch (err){
         console.warn(`Could not find subdomain`, err);
         return null;
