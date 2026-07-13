@@ -1,19 +1,33 @@
-import {useCallback, useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from 'react'
 import {useOutletContext} from "react-router";
 import {CheckCircle2, ImageIcon, UploadIcon} from "lucide-react";
-import {PROGRESS_INCREMENT, PROGRESS_INTERVAL_MS, REDIRECT_DELAY_MS} from "../lib/constants";
+import {PROGRESS_INCREMENT, REDIRECT_DELAY_MS, PROGRESS_INTERVAL_MS} from "../lib/constants";
 
 interface UploadProps {
     onComplete?: (base64Data: string) => void;
 }
 
-
 const Upload = ({ onComplete }: UploadProps) => {
     const [file, setFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [progress, setProgress] = useState(0);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const { isSignedIn } = useOutletContext<AuthContext>();
+
+    useEffect(() => {
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
+        };
+    }, []);
 
     const processFile = useCallback((file: File) => {
         if (!isSignedIn) return;
@@ -22,23 +36,31 @@ const Upload = ({ onComplete }: UploadProps) => {
         setProgress(0);
 
         const reader = new FileReader();
+        reader.onerror = () => {
+            setFile(null);
+            setProgress(0);
+        };
         reader.onloadend = () => {
             const base64Data = reader.result as string;
 
-            const interval = setInterval(() => {
+            intervalRef.current = setInterval(() => {
                 setProgress((prev) => {
                     const next = prev + PROGRESS_INCREMENT;
-                    if(next >= 100) {
-                        clearInterval(interval);
-                        setTimeout(() => {
+                    if (next >= 100) {
+                        if (intervalRef.current) {
+                            clearInterval(intervalRef.current);
+                            intervalRef.current = null;
+                        }
+                        timeoutRef.current = setTimeout(() => {
                             onComplete?.(base64Data);
+                            timeoutRef.current = null;
                         }, REDIRECT_DELAY_MS);
                         return 100;
                     }
                     return next;
                 });
-            }, PROGRESS_INTERVAL_MS)
-        }
+            }, PROGRESS_INTERVAL_MS);
+        };
         reader.readAsDataURL(file);
     }, [isSignedIn, onComplete]);
 
@@ -86,7 +108,7 @@ const Upload = ({ onComplete }: UploadProps) => {
                     <input
                         type="file"
                         className="drop-input"
-                        accept=".jpg, .jpeg, .png"
+                        accept=".jpg,.jpeg,.png,.webp"
                         disabled={!isSignedIn}
                         onChange={handleChange}
                     />
@@ -95,15 +117,12 @@ const Upload = ({ onComplete }: UploadProps) => {
                         <div className="drop-icon">
                             <UploadIcon size={20} />
                         </div>
-
                         <p>
                             {isSignedIn ? (
-                                    "Click to upload or just drag and drop"
-                                ) : ("Sign in or Sign up with Puter to upload")}
+                                "Click to upload or just drag and drop"
+                            ): ("Sign in or sign up with Puter to upload")}
                         </p>
-
-                        <p className="help">Maximum file size 50 MB</p>
-
+                        <p className="help">Maximum file size 50 MB.</p>
                     </div>
                 </div>
             ) : (
@@ -112,18 +131,18 @@ const Upload = ({ onComplete }: UploadProps) => {
                         <div className="status-icon">
                             {progress === 100 ? (
                                 <CheckCircle2 className="check" />
-                            ) : (
+                            ): (
                                 <ImageIcon className="image" />
                             )}
                         </div>
 
                         <h3>{file.name}</h3>
 
-                        <div className="progress">
-                            <div className="bar" style={{width: `${progress}%`}} />
+                        <div className='progress'>
+                            <div className="bar" style={{ width: `${progress}%` }} />
 
                             <p className="status-text">
-                                {progress < 100 ? 'Analyzing Floor Plan ...' : 'Redirecting ...'}
+                                {progress < 100 ? 'Analyzing Floor Plan...' : 'Redirecting...'}
                             </p>
                         </div>
                     </div>
