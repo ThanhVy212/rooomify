@@ -66,7 +66,9 @@ const Upload = ({ onComplete }: UploadProps) => {
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
-        if (!isSignedIn) return;
+        if (!isSignedIn) {
+
+        }
         setIsDragging(true);
     };
 
