@@ -3,7 +3,7 @@ import Navbar from "../../components/Navbar";
 import {ArrowRight, ArrowUpRight, Clock, Layers} from "lucide-react";
 import Button from "../../components/ui/button";
 import Upload from "../../components/Upload";
-import {useNavigate} from "react-router";
+import {useNavigate, useOutletContext} from "react-router";
 import {useEffect, useRef, useState} from "react";
 import {createProject, getProjects} from "../../lib/puter.action";
 
@@ -18,6 +18,7 @@ export default function Home() {
     const navigate = useNavigate();
     const [projects, setProjects] = useState<DesignItem[]>([]);
     const isCreatingProjectRef = useRef(false);
+    const { userName} = useOutletContext<AuthContext>();
 
     const handleUploadComplete = async (base64Image: string) => {
         if(isCreatingProjectRef.current) return false;
@@ -129,7 +130,16 @@ export default function Home() {
 
                 <div className="projects-grid">
                     {projects.map(({id, name, renderedImage, sourceImage, timestamp}) => (
-                        <div key={id} className="project-card group" onClick={() => navigate(`/visualizer/${id}`)}>
+                        <div
+                            key={id}
+                            className="project-card group"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => navigate(`/visualizer/${id}`)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') navigate(`/visualizer/${id}`);
+                            }}
+                        >
                             <div className="preview">
                                 <img src={renderedImage || sourceImage}
                                      alt="Project"/>
@@ -145,7 +155,7 @@ export default function Home() {
 
                                     <div className="meta">
                                         <Clock size={12} />
-                                        <span>{new Date(timestamp).toLocaleDateString()}  By ThanhVyj</span>
+                                        <span>{new Date(timestamp).toLocaleDateString()}  {userName ? `By ${userName}` : 'Unknow'}</span>
                                         <span></span>
                                     </div>
                                 </div>
